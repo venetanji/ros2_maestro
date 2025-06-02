@@ -1,0 +1,27 @@
+{
+    // Task for installing Python dependencies
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Install Python requirements",
+            "type": "shell",
+            "command": "pip install -r requirements.txt",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build ROS 2 package",
+            "type": "shell",
+            "command": "colcon build --packages-select ros2_maestro",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Launch Maestro Node",
+            "type": "shell",
+            "command": "ros2 launch ros2_maestro maestro_node.launch.py",
+            "group": "test",
+            "problemMatcher": []
+        }
+    ]
+}

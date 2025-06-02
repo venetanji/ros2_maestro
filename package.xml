@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ros2_maestro</name>
+  <version>0.1.0</version>
+  <description>ROS 2 node for controlling Pololu Maestro servos from /face_motors topic</description>
+  <maintainer email="your@email.com">Your Name</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>pyserial</exec_depend>
+  <exec_depend>numpy</exec_depend>
+  <exec_depend>PyYAML</exec_depend>
+</package>

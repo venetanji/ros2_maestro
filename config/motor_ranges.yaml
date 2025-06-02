@@ -1,0 +1,14 @@
+# Example motor ranges for 12 channels
+channels:
+  0: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  1: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  2: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  3: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  4: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  5: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  6: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  7: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  8: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  9: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  10: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
+  11: {min_qus: 4000, max_qus: 8000, neutral_qus: 6000}
