@@ -1,8 +1,9 @@
 import serial
 import yaml
+import time
 
 class MaestroController:
-    def __init__(self, port="COM6", baudrate=9600, yaml_file=None):
+    def __init__(self, port="/dev/ttyACM0", baudrate=115200, yaml_file=None):
         self.port = port
         self.baudrate = baudrate
         self.channels = {}
@@ -62,7 +63,8 @@ class MaestroController:
         msb = (target >> 7) & 0x7F
         cmd = bytes([0x84, int(channel), lsb, msb])
         self.ser.write(cmd)
-        
+        time.sleep(0.005)  # Allow time for the command to be processed
+    
     def set_multiple_servos(self, positions_dict):
         """
         Set multiple servo positions at once using the compact protocol.
@@ -82,26 +84,60 @@ class MaestroController:
         # Sort channels to ensure they're processed in order
         channels = sorted(positions_dict.keys())
         
-        # Check if channels form a contiguous block (required by protocol)
-        for i in range(len(channels) - 1):
-            if channels[i + 1] != channels[i] + 1:
-                print(f"[MaestroController] Warning: Channels must be contiguous for set_multiple_servos. Falling back to individual commands.")
-                for channel, qus in positions_dict.items():
-                    self.set_servo_qus(channel, qus)
-                return
-                
-        # Build the command
-        # Compact protocol: 0x9F, number of targets, first channel number, first target low bits, 
-        # first target high bits, second target low bits, second target high bits, …
-        cmd = bytearray([0x9F, len(channels), channels[0]])
+        # Find any missing channels and fill them with neutral positions
+        min_channel = min(channels)
+        max_channel = max(channels)
         
-        for channel in channels:
-            target = int(positions_dict[channel])
-            lsb = target & 0x7F
-            msb = (target >> 7) & 0x7F
-            cmd.extend([lsb, msb])
-            
-        self.ser.write(cmd)
+        # Find all gaps in the channel sequence and fill them with neutral positions
+        complete_positions = positions_dict.copy()
+        for channel_num in range(min_channel, max_channel + 1):
+            if channel_num not in channels:
+                # If a channel is missing, check if we have configuration for it
+                cfg = self.channels.get(channel_num)
+                if cfg and 'neutral_position' in cfg:
+                    # Add neutral position for missing channel
+                    neutral_qus = cfg['neutral_position']
+                    complete_positions[channel_num] = neutral_qus
+                    print(f"[MaestroController] Filling in missing channel {channel_num} with neutral position {neutral_qus}")
+        
+        # Now we have a complete set of positions, but they might still be non-contiguous
+        # if we don't have configs for some channels
+        channels = sorted(complete_positions.keys())
+        
+        # Break it into contiguous chunks and send each chunk separately
+        chunks = []
+        current_chunk = [channels[0]]
+        
+        for i in range(1, len(channels)):
+            if channels[i] == channels[i-1] + 1:
+                current_chunk.append(channels[i])
+            else:
+                chunks.append(current_chunk)
+                current_chunk = [channels[i]]
+        
+        if current_chunk:
+            chunks.append(current_chunk)
+        
+        # Send each contiguous chunk of channels
+        for chunk in chunks:
+            if len(chunk) == 1:
+                # Just a single channel, use individual command
+                channel = chunk[0]
+                self.set_servo_qus(channel, complete_positions[channel])
+            else:
+                # Build the command for this contiguous chunk
+                # Compact protocol: 0x9F, number of targets, first channel number, first target low bits, 
+                # first target high bits, second target low bits, second target high bits, …
+                cmd = bytearray([0x9F, len(chunk), chunk[0]])
+                
+                for channel in chunk:
+                    target = int(complete_positions[channel])
+                    lsb = target & 0x7F
+                    msb = (target >> 7) & 0x7F
+                    cmd.extend([lsb, msb])
+                
+                self.ser.write(cmd)
+                time.sleep(0.01)  # Small delay between commands
 
     def close(self):
         if self.ser:
