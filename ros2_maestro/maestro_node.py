@@ -35,9 +35,25 @@ class MaestroMotorNode(Node):
             if len(arr) < len(self.active_channels):
                 arr = np.pad(arr, (0, len(self.active_channels)-len(arr)), 'constant')
         self.motor_positions = np.clip(arr, -1.0, 1.0)
+        
         if not self.simulation:
+            # Use the more efficient set_multiple_servos method if channels are contiguous
+            # First convert normalized values to quarter-microsecond values
+            qus_positions = {}
             for i, channel in enumerate(self.active_channels):
-                self.maestro.set_servo_normalized(channel, float(self.motor_positions[i]))
+                value = float(self.motor_positions[i])
+                cfg = self.maestro.channels.get(channel)
+                if cfg:
+                    value = max(-1.0, min(1.0, value))
+                    if value <= 0:
+                        qus = int(cfg['neutral_position'] + (cfg['neutral_position'] - cfg['min_position']) * value)
+                    else:
+                        qus = int(cfg['neutral_position'] + (cfg['max_position'] - cfg['neutral_position']) * value)
+                    qus_positions[channel] = qus
+            
+            # If we have positions to set, use set_multiple_servos
+            if qus_positions:
+                self.maestro.set_multiple_servos(qus_positions)
         else:
             self.get_logger().info(f"[SIM] Motor positions: {self.motor_positions}")
 

@@ -62,6 +62,46 @@ class MaestroController:
         msb = (target >> 7) & 0x7F
         cmd = bytes([0x84, int(channel), lsb, msb])
         self.ser.write(cmd)
+        
+    def set_multiple_servos(self, positions_dict):
+        """
+        Set multiple servo positions at once using the compact protocol.
+        This is more efficient than setting them one at a time.
+        
+        Args:
+            positions_dict: Dictionary mapping channel numbers to target positions (in quarter microseconds)
+                            Example: {0: 6000, 1: 7000, 2: 5000}
+        """
+        if self.ser is None:
+            print(f"[MaestroController] Not connected. Simulating set_multiple_servos({positions_dict})")
+            return
+            
+        if not positions_dict:
+            return
+            
+        # Sort channels to ensure they're processed in order
+        channels = sorted(positions_dict.keys())
+        
+        # Check if channels form a contiguous block (required by protocol)
+        for i in range(len(channels) - 1):
+            if channels[i + 1] != channels[i] + 1:
+                print(f"[MaestroController] Warning: Channels must be contiguous for set_multiple_servos. Falling back to individual commands.")
+                for channel, qus in positions_dict.items():
+                    self.set_servo_qus(channel, qus)
+                return
+                
+        # Build the command
+        # Compact protocol: 0x9F, number of targets, first channel number, first target low bits, 
+        # first target high bits, second target low bits, second target high bits, …
+        cmd = bytearray([0x9F, len(channels), channels[0]])
+        
+        for channel in channels:
+            target = int(positions_dict[channel])
+            lsb = target & 0x7F
+            msb = (target >> 7) & 0x7F
+            cmd.extend([lsb, msb])
+            
+        self.ser.write(cmd)
 
     def close(self):
         if self.ser:
