@@ -32,7 +32,16 @@ ros2 launch ros2_maestro maestro_node.launch.py
 ```
 
 ## Configuration
-- Edit `config/motor_ranges.yaml` to set up channel calibration.
+- Edit `config/motor_ranges.yaml` to set up channel calibration using the following format:
+  ```yaml
+  channel_0:
+    max_position: 7808
+    max_us: 1952.0
+    min_position: 4928
+    min_us: 1232.0
+    neutral_position: 6480
+    neutral_us: 1620.0
+  ```
 
 ## License
 MIT

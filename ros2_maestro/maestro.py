@@ -17,26 +17,39 @@ class MaestroController:
         except Exception as e:
             print(f"[MaestroController] Could not open serial port: {e}")
             self.ser = None
-
+            
     def load_motor_ranges_from_yaml(self, yaml_file):
         with open(yaml_file, 'r') as f:
             data = yaml.safe_load(f)
-        self.channels = data.get('channels', {})
+        
+        # Load the new format with channel_X keys
+        self.channels = {}
+        for key, value in data.items():
+            if key.startswith('channel_'):
+                # Convert channel_0 to 0 for internal use
+                channel_num = int(key.split('_')[1])
+                self.channels[channel_num] = value
+        
         return list(self.channels.keys())
 
     def set_servo_normalized(self, channel, value):
         if self.ser is None:
             print(f"[MaestroController] Not connected. Simulating set_servo_normalized({channel}, {value})")
             return
+        
         cfg = self.channels.get(channel)
         if cfg is None:
             print(f"[MaestroController] Channel {channel} not configured.")
             return
+        
         value = max(-1.0, min(1.0, value))
+        
+        # Use position values from new format
         if value <= 0:
-            qus = int(cfg['neutral_qus'] + (cfg['neutral_qus'] - cfg['min_qus']) * value)
+            qus = int(cfg['neutral_position'] + (cfg['neutral_position'] - cfg['min_position']) * value)
         else:
-            qus = int(cfg['neutral_qus'] + (cfg['max_qus'] - cfg['neutral_qus']) * value)
+            qus = int(cfg['neutral_position'] + (cfg['max_position'] - cfg['neutral_position']) * value)
+                
         self.set_servo_qus(channel, qus)
 
     def set_servo_qus(self, channel, qus):
